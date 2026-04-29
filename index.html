@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUMINA CORE | Motion-Grid Lighting</title>
+
+    
+    <link rel="icon" type="image/x-icon" href="./image/icon.webp">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- GLOBAL VARIABLES & THEMES --- */
+        :root {
+            --primary: #ffd700;
+            /* Rich Gold */
+            --bg: #030712;
+            --text: #f8fafc;
+            --surface: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 215, 0, 0.1);
+            --shadow: 0 25px 50px -12px rgba(255, 215, 0, 0.15);
+        }
+
+        [data-theme="light"] {
+            --bg: #f8fafc;
+            --text: #030712;
+            --surface: rgba(0, 0, 0, 0.03);
+            --border: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .cat-btn {
+    color: rgba(0, 0, 0, 0.5);
+}
+        /* --- RESET & BASE STYLES --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            transition: background 0.5s ease;
+            overflow-x: hidden;
+        }
+
+        /* --- PARALLAX PARTICLE BACKGROUND --- */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            opacity: 0.15;
+        }
+
+        /* --- CUSTOM MOTION CURSOR --- */
+        #cursor {
+            position: fixed;
+            width: 15px;
+            height: 15px;
+            background: var(--primary);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            box-shadow: 0 0 20px var(--primary);
+            transition: transform 0.1s ease;
+        }
+
+        /* --- STICKY HEADER WITH MAGNETIC NAV --- */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(3, 7, 18, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 5%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            font-style: italic;
+            font-family: 'Playfair Display', serif;
+        }
+
+        .logo span {
+            color: var(--primary);
+            font-style: normal;
+            font-family: 'Inter';
+        }
+
+        .search-area {
+            flex: 0 1 350px;
+            position: relative;
+            margin: 0 20px;
+        }
+
+        #searchInput {
+            width: 100%;
+            padding: 12px 15px 12px 40px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            outline: none;
+            transition: 0.3s;
+        }
+
+        #searchInput:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .search-area i {
+            position: absolute;
+            left: 15px;
+            top: 14px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .nav-tools {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-tools i {
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .nav-tools i:hover {
+            color: var(--primary);
+            transform: scale(1.3) rotate(15deg);
+        }
+
+        /* --- CATEGORY NAVIGATION --- */
+        .categories {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            padding: 25px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .cat-btn {
+            background: none;
+            border: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            padding-bottom: 8px;
+            position: relative;
+            transition: 0.4s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .cat-btn::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: 0.4s;
+            transform: translateX(-50%);
+        }
+
+        .cat-btn.active,
+        .cat-btn:hover {
+            color: var(--text);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .cat-btn.active::before,
+        .cat-btn:hover::before {
+            width: 50%;
+        }
+
+        /* --- PRODUCT GRID SYSTEM --- */
+        .main-content {
+            padding: 60px 5%;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            /* Default 4 columns for desktop */
+            gap: 30px;
+        }
+
+        /* --- PRODUCT CARD STYLES & REVEAL ANIMATION --- */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative;
+            opacity: 0;
+            transform: translateY(40px) rotateX(-10deg);
+        }
+
+        .card.reveal {
+            opacity: 1;
+            transform: translateY(0) rotateX(0deg);
+        }
+
+        .card:hover {
+            transform: translateY(-15px) scale(1.02);
+            border-color: var(--primary);
+            box-shadow: var(--shadow);
+            z-index: 5;
+        }
+
+        .img-wrap {
+            width: 100%;
+            aspect-ratio: 1/1;
+            background: #111;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.6;
+            transition: 0.8s;
+        }
+
+        .card:hover img {
+            opacity: 1;
+            transform: scale(1.1) rotate(2deg);
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        .card-price {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+            position: relative;
+        }
+
+        /* HOVER EFFECTS */
+        .card:hover .card-price {
+            animation: glitch 0.3s ease infinite;
+        }
+
+        @keyframes glitch {
+            0% {
+                text-shadow: 1px 0 0 rgba(255, 0, 0, 0.5), -1px 0 0 rgba(0, 255, 255, 0.5);
+            }
+
+            100% {
+                text-shadow: -1px 0 0 rgba(255, 0, 0, 0.5), 1px 0 0 rgba(0, 255, 255, 0.5);
+            }
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 8px 0;
+            height: 1.4em;
+            overflow: hidden;
+            text-transform: uppercase;
+        }
+
+        .card-title:hover {
+            color: var(--primary);
+        }
+
+        .add-cart-btn {
+            width: 100%;
+            margin-top: 15px;
+            padding: 12px;
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.4s cubic-bezier(0.6, -0.28, 0.735, 0.045);
+        }
+
+        .add-cart-btn:hover {
+            background: var(--text);
+            color: var(--bg);
+            transform: scale(0.95);
+        }
+
+        .add-cart-btn:active {
+            animation: elastic 0.2s ease;
+        }
+
+        @keyframes elastic {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1) translateY(-5px);
+            }
+        }
+
+        /* --- RESPONSIVE BREAKPOINTS --- */
+        @media (max-width: 1024px) {
+            .grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                padding: 10px 5%;
+            }
+
+            .logo {
+                font-size: 1.2rem;
+            }
+
+            .search-area {
+                display: none;
+            }
+
+            .categories {
+                gap: 15px;
+                overflow-x: auto;
+                padding: 15px 5%;
+                justify-content: flex-start;
+                scrollbar-width: none;
+            }
+
+            .cat-btn {
+                font-size: 0.75rem;
+                white-space: nowrap;
+            }
+
+            .grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+
+            .card {
+                border-radius: 8px;
+            }
+
+            .card-content {
+                padding: 10px;
+            }
+
+            .card-title {
+                font-size: 0.65rem;
+                height: 1.2em;
+                margin-bottom: 5px;
+            }
+
+            .card-price {
+                font-size: 0.9rem;
+            }
+
+            .add-cart-btn {
+                font-size: 0.5rem;
+                padding: 8px;
+                border-radius: 6px;
+            }
+
+            #cursor {
+                display: none;
+            }
+        }
+
+        /* --- NOTIFICATION TOAST --- */
+        #cart-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: var(--primary);
+            color: #000;
+            padding: 15px 40px;
+            border-radius: 12px;
+            display: none;
+            z-index: 2000;
+            font-weight: 700;
+            font-size: 0.9rem;
+            animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.5);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%) rotate(-10deg);
+            }
+
+            to {
+                transform: translateX(0) rotate(0deg);
+            }
+        }
+    </style>
+</head>
+
+<body onload="setupBG()">
+
+    <canvas id="bg-canvas"></canvas>
+    <div id="cursor"></div>
+    <div id="cart-toast">Selection Linked! 💡⚡</div>
+
+    <header>
+        <div class="logo">LUMINA <span>Core</span></div>
+        <div class="search-area">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Scan Aesthetics...">
+        </div>
+        <div class="nav-tools">
+            <i class="fas fa-adjust" id="themeBtn"></i>
+            <div style="position: relative;">
+                <i class="fas fa-shopping-bag"></i>
+                <span id="cartCount" style="position:absolute; top:-10px; right:-10px; background:var(--primary); color:#000; font-size:9px; padding:2px 5px; border-radius:50%; display:none; font-weight:bold">0</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="categories">
+        <button class="cat-btn active" onclick="filter('All')">All</button>
+        <button class="cat-btn" onclick="filter('Indoor')">Indoor</button>
+        <button class="cat-btn" onclick="filter('Outdoor')">Outdoor</button>
+        <button class="cat-btn" onclick="filter('Living-Room')">Living-Room</button>
+        <button class="cat-btn" onclick="filter('Dining')">Dining</button>    
+        <button class="cat-btn" onclick="filter('Bedroom')">Bedroom</button>
+        <button class="cat-btn" onclick="filter('Bathroom')">Bathroom</button>
+        <button class="cat-btn" onclick="filter('Office-Study')">Office-Study</button>
+        <button class="cat-btn" onclick="filter('Commercial')">Commercial</button>
+        <button class="cat-btn" onclick="filter('Industrial')">Industrial</button>
+    </div>
+
+    <main class="main-content">
+        <div class="grid" id="mainGrid"></div>
+    </main>
+
+    <footer style="padding: 100px 5%; text-align: center; border-top: 1px solid var(--border); opacity: 0.3; font-size: 0.7rem; font-weight: 600; letter-spacing: 5px;">
+        &copy; 2026 | LUMINA CORE - Elegant Lighting Solutions Store | Developed by Niaj Morshed
+    </footer>
+
+    <script>
+        // HANDLE CUSTOM CURSOR MOVEMENT
+        const cursor = document.getElementById('cursor');
+        document.addEventListener('mousemove', e => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+
+        // INITIALIZE PARTICLE BACKGROUND SYSTEM
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function setupBG() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            for (let i = 0; i < 1000; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 3 + 2,
+                    speed: Math.random() * 1 + 1,
+                    opacity: Math.random() * 0.5 + 0.1
+                });
+            }
+            animateBG();
+        }
+
+        // ANIMATE PARTICLES ON FRAME UPDATE
+function animateBG() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const isLight = document.body.getAttribute('data-theme') === 'light';
+
+    particles.forEach(p => {
+        p.y += p.speed;
+
+        if (p.y > canvas.height) p.y = -p.size;
+
+        // 🎯 Light vs Dark visibility fix
+        ctx.globalAlpha = isLight 
+            ? Math.min(p.opacity + 0.3, 1)  // light mode → more visible
+            : p.opacity;
+
+        ctx.fillStyle = isLight 
+            ? "rgba(0,0,0,0.6)"   // dark dots on light bg
+            : "rgba(255,255,255,0.8)"; // light dots on dark bg
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    requestAnimationFrame(animateBG);
+}
+
+        // PRODUCT DATA SEED
+        const rawData = [{
+                t: "Indoor 1",
+                p: "৳500",
+                c: "Indoor",
+                i: "./image/indoor1.webp"
+            },
+            {
+                t: "Indoor 2",
+                p: "৳2,500",
+                c: "Indoor",
+                i: "./image/indoor2.jpg"
+            },
+            {
+                t: "Indoor 3",
+                p: "৳1,500",
+                c: "Indoor",
+                i: "./image/indoor3.jpg"
+            },
+            {
+                t: "Indoor 4",
+                p: "৳3,500",
+                c: "Indoor",
+                i: "./image/indoor4.webp"
+            },
+
+
+
+            {
+                t: "Outdoor 1",
+                p: "৳500",
+                c: "Outdoor",
+                i: "./image/outdoor1.webp"
+            },
+            {
+                t: "Outdoor 2",
+                p: "৳2,500",
+                c: "Outdoor",
+                i: "./image/outdoor2.webp"
+            },
+            {
+                t: "Outdoor 3",
+                p: "৳1,500",
+                c: "Outdoor",
+                i: "./image/outdoor3.jpg"
+            },
+            {
+                t: "Outdoor 4",
+                p: "৳3,500",
+                c: "Outdoor",
+                i: "./image/outdoor4.jpg"
+            },
+
+
+
+            {
+                t: "Living room 1",
+                p: "৳500",
+                c: "Living-Room",
+                i: "./image/living1.webp"
+            },
+            {
+                t: "Living room 2",
+                p: "৳2,500",
+                c: "Living-Room",
+                i: "./image/living2.webp"
+            },
+            {
+                t: "Living room 3",
+                p: "৳1,500",
+                c: "Living-Room",
+                i: "./image/living3.jpg"
+            },
+
+
+
+
+            {
+                t: "Dining 1",
+                p: "৳500",
+                c: "Dining",
+                i: "./image/dining1.jpg"
+            },
+            {
+                t: "Dining 2",
+                p: "৳2,500",
+                c: "Dining",
+                i: "./image/dining2.jpg"
+            },
+            {
+                t: "Dining 3",
+                p: "৳1,500",
+                c: "Dining",
+                i: "./image/dining3.webp"
+            },
+
+
+
+            {
+                t: "Bedroom 1",
+                p: "৳500",
+                c: "Bedroom",
+                i: "./image/bedroom1.jpg"
+            },
+            {
+                t: "Bedroom 2",
+                p: "৳2,500",
+                c: "Bedroom",
+                i: "./image/bedroom2.jpg"
+            },
+            {
+                t: "Bedroom 3",
+                p: "৳1,500",
+                c: "Bedroom",
+                i: "./image/bedroom3.webp"
+            },
+
+
+            {
+                t: "Bathroom 1",
+                p: "৳500",
+                c: "Bathroom",
+                i: "./image/bathroom1.jpg"
+            },
+            {
+                t: "Bathroom 2",
+                p: "৳2,500",
+                c: "Bathroom",
+                i: "./image/bathroom2.avif"
+            },
+            {
+                t: "Bathroom 3",
+                p: "৳1,500",
+                c: "Bathroom",
+                i: "./image/bathroom3.jpg"
+            },
+
+
+
+            {
+                t: "Office-Study 1",
+                p: "৳500",
+                c: "Office-Study",
+                i: "./image/office.avif"
+            },
+            {
+                t: "Office-Study 2",
+                p: "৳2,500",
+                c: "Office-Study",
+                i: "./image/office2.jpg"
+            },
+            {
+                t: "Office-Study 3",
+                p: "৳1,500",
+                c: "Office-Study",
+                i: "./image/office3.jpg"
+            },
+
+
+            {
+                t: "Commercial 1",
+                p: "৳500",
+                c: "Commercial",
+                i: "./image/commer1.webp"
+            },
+            {
+                t: "Commercial 2",
+                p: "৳2,500",
+                c: "Commercial",
+                i: "./image/commer2.webp"
+            },
+            {
+                t: "Commercial 3",
+                p: "৳1,500",
+                c: "Commercial",
+                i: "./image/commer3.webp"
+            },
+
+
+
+            {
+                t: "Industrial 1",
+                p: "৳500",
+                c: "Industrial",
+                i: "./image/inder1.jpg"
+            },
+            {
+                t: "Industrial 2",
+                p: "৳2,500",
+                c: "Industrial",
+                i: "./image/inder2.jpeg"
+            },
+            {
+                t: "Industrial 3",
+                p: "৳1,500",
+                c: "Industrial",
+                i: "./image/inder3.jpg"
+            },
+
+        ];
+
+        let db = rawData;
+
+        const grid = document.getElementById('mainGrid');
+        let cart = 0;
+
+        // CORE RENDER FUNCTION WITH REVEAL LOGIC
+        function render(data) {
+            grid.innerHTML = '';
+            data.forEach((p, index) => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                // STAGGERED ANIMATION DELAY CALCULATION
+                div.style.transitionDelay = (index % 10) * 0.05 + 's';
+                div.innerHTML = `
+                    <div class="img-wrap"><img src="${p.i}" alt="${p.t}"></div>
+                    <div class="card-content">
+                        <p class="card-price">${p.p}</p>
+                        <h3 class="card-title">${p.t}</h3>
+                        <button class="add-cart-btn" onclick="addToCart()">Add Unit</button>
+                    </div>
+                `;
+                grid.appendChild(div);
+                // TRIGGER CSS REVEAL CLASS
+                setTimeout(() => div.classList.add('reveal'), 10);
+            });
+        }
+
+        // CATEGORY FILTER LOGIC
+        function filter(category) {
+            document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
+            if (event) event.target.classList.add('active');
+            render(category === 'all' ? db : db.filter(i => i.c === category));
+        }
+
+        // SEARCH FUNCTIONALITY
+        document.getElementById('searchInput').oninput = (e) => {
+            const query = e.target.value.toLowerCase();
+            render(db.filter(i => i.t.toLowerCase().includes(query)));
+        };
+
+        // ADD TO CART SYSTEM & TOAST NOTIFICATION
+        function addToCart() {
+            cart++;
+            document.getElementById('cartCount').innerText = cart;
+            document.getElementById('cartCount').style.display = 'block';
+            const toast = document.getElementById('cart-toast');
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+
+        // THEME TOGGLE (DARK/LIGHT MODE)
+        document.getElementById('themeBtn').onclick = () => {
+            const current = document.body.getAttribute('data-theme');
+            const isDark = current !== 'light';
+            document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            document.getElementById('themeBtn').className = isDark ? 'fas fa-sun' : 'fas fa-adjust';
+        };
+
+        // INITIAL RENDER
+        render(db);
+    </script>
+</body>
+
+</html>
